@@ -1,0 +1,12 @@
+.env
+.env.test
+node_modules/
+.agents
+.devin
+.cursor
+.claude
+.windsurf
+dist/
+skills-lock.json
+
+/generated/prisma
