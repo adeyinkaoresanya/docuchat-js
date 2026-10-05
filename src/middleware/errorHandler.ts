@@ -1,6 +1,10 @@
-// src/middleware/errorHandler.ts
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../lib/errors';
+
+
+
+// if this error is an instance of the custom errors implemented which are mostly operational errors, log it
+//otherwise, this is most likely a programming error, log it and return a generic message to the client
 
 export function errorHandler(
   err: Error,

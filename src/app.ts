@@ -2,17 +2,24 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 
-import { config } from './lib/config';
+import { config } from './config/env';
 import { logger } from './lib/logger';
 
 import './events/auth.events';
+import './events/admin.events';
+import './events/document.events';
+import './events/cache.events';
+
+import './queues/document.worker';
+
+
+
 
 import authRoutes from './routes/auth';
-import documentRoutes from './routes/documents';
-// import conversationRoutes from './routes/conversations';
 
 
 import { errorHandler } from './middleware/errorHandler';
+
 
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
@@ -23,6 +30,17 @@ const app = express();
 // === MIDDLEWARE (runs on every request) ===
 app.use(helmet());              // Security headers
 app.use(cors());                // Cross-origin requests
+
+
+// Capture raw body for webhook routes BEFORE express.json()
+// const secret = process.env.WEBHOOK_SECRET
+// app.use('/webhooks', verifyWebhookSignature(secret, "x-signature"), express.raw({
+//   type: 'application/json',
+//   verify: (req: any, res, buf) => {
+//     req.rawBody = buf;
+//   },
+// }));
+
 app.use(express.json());        // Parse JSON request bodies
 
 // Serve Swagger UI
@@ -56,7 +74,8 @@ app.get('/api-docs.json', (req, res) => {
 // === ROUTES (mounted here as you build them) ===
 // API v1
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/documents', documentRoutes);
+//app.use('/api/v1/admin', adminRoutes);
+// app.use('/api/v1/documents', documentRoutes);
 // app.use('/api/v1/conversations', conversationRoutes);
 // app.use('/api/v1/chat', chatRoutes);
 
@@ -66,7 +85,7 @@ app.use('/api/v1/documents', documentRoutes);
 
 // === ERROR HANDLER (must be last middleware) ===
 
-
+ 
 // 404 handler for unknown routes
 app.use((req, res) => {
   res.status(404).json({
@@ -76,5 +95,10 @@ app.use((req, res) => {
 });
 
 app.use(errorHandler);
+
+
+// Mount the dashboard (protect with auth in production)
+// app.use('/admin/queues', bullBoardAdapter.getRouter());
+
 
 export { app };

@@ -1,12 +1,10 @@
 // src/routes/auth.ts
 import { Router } from 'express';
-import * as authService from '../services/auth.service';
+import * as authController from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
 import { registerSchema, loginSchema } from '../validators/auth.validator';
 
 const router = Router();
-
-
 
 /**
  * @swagger
@@ -25,38 +23,47 @@ const router = Router();
  *               email:
  *                 type: string
  *                 format: email
- *                 example: student@example.com
+ *                 example: user@example.com
  *               password:
  *                 type: string
  *                 minLength: 8
- *                 example: MyPassword123
+ *                 example: MyPassword123!
  *     responses:
  *       201:
- *         description: User created successfully
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: clx123abc456
+ *                     email:
+ *                       type: string
+ *                       example: user@example.com
+ *                     tier:
+ *                       type: string
+ *                       nullable: true
+ *                       example: free
  *       400:
  *         description: Validation error
  *       409:
  *         description: Email already registered
  */
-
-
-router.post('/register', validate(registerSchema), async (req, res, next) => {
-  try {
-    const user = await authService.register(req.body);
-    res.status(201).json({ success: true, data: user });
-  } catch (error) {
-    next(error);
-  }
-});
-
-
-
+router.post('/register', validate(registerSchema), authController.register);
 
 /**
  * @swagger
  * /auth/login:
  *   post:
- *     summary: Log in a user
+ *     summary: Log in an existing user
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -69,39 +76,49 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
  *               email:
  *                 type: string
  *                 format: email
- *                 example: student@example.com
+ *                 example: user@example.com
  *               password:
  *                 type: string
- *                 minLength: 8
- *                 example: MyPassword123
+ *                 example: MyPassword123!
  *     responses:
  *       200:
- *         description: User logged in successfully
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 refreshToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: clx123abc456
+ *                     email:
+ *                       type: string
+ *                       example: user@example.com
+ *                     tier:
+ *                       type: string
+ *                       nullable: true
+ *                       example: free
  *       400:
  *         description: Validation error
  *       401:
  *         description: Invalid credentials
  */
-
-router.post('/login', validate(loginSchema), async (req, res, next) => {
-  try {
-    const result = await authService.login({
-      ...req.body,
-      deviceInfo: req.headers['user-agent'],
-    });
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-
+router.post('/login', validate(loginSchema), authController.login);
 
 /**
  * @swagger
  * /auth/refresh:
  *   post:
- *     summary: Refresh access token
+ *     summary: Refresh an access token
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -116,28 +133,30 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
  *                 example: your-refresh-token
  *     responses:
  *       200:
- *         description: Access token refreshed successfully
+ *         description: Tokens refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 refreshToken:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *       400:
  *         description: Validation error
  *       401:
- *         description: Invalid refresh token
+ *         description: Invalid or expired refresh token
  */
-router.post('/refresh', async (req, res, next) => {
-  try {
-    const result = await authService.refresh(req.body.refreshToken); //This might likely come from cookies not localStorage
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-
+router.post('/refresh', authController.refresh);
 
 /**
  * @swagger
  * /auth/logout:
  *   post:
- *     summary: Log out a user
+ *     summary: Log out a user by invalidating their refresh token
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -153,20 +172,20 @@ router.post('/refresh', async (req, res, next) => {
  *     responses:
  *       200:
  *         description: User logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logged out
  *       400:
  *         description: Validation error
  *       401:
  *         description: Invalid refresh token
  */
-
-router.post('/logout', async (req, res, next) => {
-  try {
-    await authService.logout(req.body.refreshToken);
-    res.json({ message: 'Logged out' });
-  } catch (error) {
-    next(error);
-  }
-});
+router.post('/logout', authController.logout);
 
 export default router;
 

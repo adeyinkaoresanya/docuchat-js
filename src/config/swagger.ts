@@ -10,7 +10,7 @@ const options: swaggerJsdoc.Options = {
       description: 'AI-Powered Document Q&A System',
     },
     servers: [
-      { url: '/api/v1', description: 'Version 1' },
+      { url: '/api/v1', description: 'Version 1' }, // This can point to another environment for testing out so developers dont touch the production database
     ],
     components: {
       securitySchemes: {

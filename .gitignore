@@ -8,5 +8,5 @@ node_modules/
 .windsurf
 dist/
 skills-lock.json
-
+test-email.ts
 /generated/prisma

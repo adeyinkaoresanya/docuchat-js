@@ -1,5 +1,6 @@
 // src/events/auth.events.ts
 import { appEvents } from '../lib/events';
+import { sendWelcomeEmail } from '../services/email.service'; 
 
 // ── Define the event names as constants ─────────────
 export const AUTH_EVENTS = {
@@ -27,6 +28,15 @@ appEvents.on(AUTH_EVENTS.USER_REGISTERED, async (user) => {
     console.error('Failed to log signup:', error);
   }
 });
+
+// Listener 1.5: Send welcome email
+// appEvents.on(AUTH_EVENTS.USER_REGISTERED, async (user) => {
+//   try {
+//     await sendWelcomeEmail(user.email);
+//   } catch (error) {
+//     console.error('Failed to send welcome email:', error);
+//   }
+// });
 
 // Listener 2: Create a default welcome conversation
 appEvents.on(AUTH_EVENTS.USER_REGISTERED, async (user) => {

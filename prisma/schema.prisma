@@ -12,22 +12,22 @@ datasource db {
 }
 
 
-model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  passwordHash String
-  role         String    @default("user")
-  tier         String    @default("free")
-  isActive     Boolean   @default(true)
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  model User {
+    id           String    @id @default(cuid())
+    name         String
+    email        String    @unique
+    passwordHash String
+    tier         String    @default("free")
+    isActive     Boolean   @default(true)
+    deletedAt    DateTime?
+    createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt
 
-  refreshTokens RefreshToken[]
+    refreshTokens RefreshToken[]
+    roles         UserRole[]
 
-  @@index([email])
-}
+    @@index([email])
+  }
 
 
 model RefreshToken {
@@ -42,6 +42,82 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
 }
+
+
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique   // 'admin', 'member', 'viewer'
+  description String?
+  isDefault   Boolean  @default(false)  // New users get this role
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique   // 'documents:create'
+  description String?
+  resource    String              // 'documents'
+  action      String              // 'create'
+  createdAt   DateTime @default(now())
+
+  roles       RolePermission[]
+
+  @@unique([resource, action])
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  assignedAt DateTime @default(now())
+  assignedBy String?  // Who assigned this role (for audit)
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+
+model Document {
+  id          String @id @default(cuid())
+  userId      String
+  deletedAt   DateTime?  // null = active, timestamp = soft-deleted
+  deletedBy   String?    // Who deleted it (for audit)
+
+ // @@index([userId])        // Fast: WHERE userId = ?
+ // @@index([status])        // Fast: WHERE status = 'READY'
+ // @@index([userId, status]) // Fast: WHERE userId = ? AND status = ?
+}
+
+
+
+model WebhookEvent {
+  id           String   @id  // The provider's event ID
+  provider     String         // 'stripe', 'github', etc.
+  eventType    String         // 'payment.succeeded', etc.
+  receivedAt   DateTime @default(now())
+  processedAt  DateTime?
+  payload      String         // Raw payload for debugging
+
+  @@index([provider, eventType])
+}
+
+
 
 
 // You will add Document, Conversation, Message, Chunk,

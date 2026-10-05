@@ -1,5 +1,3 @@
-// src/lib/config.ts
-
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
@@ -11,6 +9,7 @@ const envSchema = z.object({
   // Server
   NODE_ENV: z.enum(['development', 'production', 'test'])
     .default('development'),
+    
   PORT: z.coerce.number().default(3000),
 
   // Database
@@ -19,13 +18,24 @@ const envSchema = z.object({
   // Authentication
   JWT_ACCESS_SECRET: z.string().min(32,
     'JWT_ACCESS_SECRET must be at least 32 characters'),
-  JWT_EXPIRES_IN: z.string().default('15m'),
-  REFRESH_TOKEN_EXPIRES_IN: z.string().default('7d'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
+  JWT_ACCESS_SECRET_EXPIRES_IN: z.string().default('15m'),
+  JWT_REFRESH_SECRET_EXPIRES_IN: z.string().default('7d'),
+
+  // Email (SMTP)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_SECURE: z.enum(['true', 'false']).optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  MAIL_FROM: z.email().optional(),
 
   // OpenAI (needed from Week 4 onward)
   OPENAI_API_KEY: z.string().optional(),
 
   // Redis (needed from Week 3 onward)
+  REDIS_HOST: z.string().optional(),
+  REDIS_PORT: z.coerce.number().optional(),
   REDIS_URL: z.string().optional(),
 });
 
@@ -34,7 +44,9 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   console.error('\n❌ Invalid environment variables:');
-  console.error(parsed.error.format());
+  for (const issue of parsed.error.issues) {
+  console.error(`- ${issue.path.join('.')}-- ${issue.message}`);
+}
   process.exit(1); // Crash immediately, do not start
 }
 

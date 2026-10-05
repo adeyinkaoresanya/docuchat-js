@@ -1,54 +1,50 @@
-import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
-import { validate } from '../middleware/validate';
-import {
-  createDocumentSchema,
-  listDocumentsSchema,
-  documentParamsSchema,
-} from '../validators/document.validator';
+// import { Router } from 'express';
+// import { authenticate } from '../middleware/auth';
+// import { validate } from '../middleware/validate';
+// import { documentParamsSchema } from '../validators/document.validator';
+// import { getDocument } from '../controllers/document.controller';
+// import {documentQueue} from '../queues/document.queue';
+
+// const router = Router();
+
+// router.use(authenticate);
+
+// router.get('/:id', validate(documentParamsSchema), getDocument);
+
+// export default router;
+
+// router.get('/:id/processing-status',
+//   authenticate,
+//   requirePermission('documents:read'),
+//   async (req, res) => {
+//     const doc = await prisma.document.findUnique({
+//       where: { id: req.params.id },
+//       select: { id: true, status: true, error: true, userId: true },
+//     });
+
+//     if (!doc || doc.userId !== req.user!.id) {
+//       return res.status(404).json({
+//         success: false,
+//         error: { code: 'NOT_FOUND', message: 'Document not found' },
+//       });
+//     }
+
+//     // Try to find the active job for this document
+//     const jobs = await documentQueue.getJobs(['active', 'waiting']);
+//     const activeJob = jobs.find(
+//       j => j.data.documentId === req.params.id
+//     );
+
+//     res.json({
+//       success: true,
+//       data: {
+//         status: doc.status,
+//         error: doc.error,
+//         progress: activeJob ? await activeJob.progress : null,
+//       },
+        // });
+        // }
+        // );
 
 
-const router = Router();
-router.use(authenticate); // Apply authentication middleware to all routes in this router
-
-router.get('/', (req, res) => {
-  res.status(200).json({ success: true, data: [] });
-});
-
-// // Public route - no auth needed
-// router.get('/health', (req, res) => res.json({ status: 'ok' }));
-
-// // Protected route - requires valid access token
-// router.get('/documents', authenticate, async (req, res) => {
-//   // Document model is introduced in a later step of the project.
-//   res.status(501).json({
-//     error: 'Documents endpoint not implemented yet',
-//     userId: req.user!.id,
-//   });
-// });
-
-
-
-
-// router.get('/',
-//   validate(listDocumentsSchema),
-//   listDocuments
-// );
-
-// router.post('/',
-//   validate(createDocumentSchema),
-//   createDocument
-// );
-
-// router.get('/:id',
-//   validate(documentParamsSchema),
-//   getDocument
-// );
-
-// router.delete('/:id',
-//   validate(documentParamsSchema),
-//   deleteDocument
-// );
-
-
-export default router;
+// router.get('/documents/:id', conditionalGet(), getDocument);

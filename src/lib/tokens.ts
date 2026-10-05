@@ -1,7 +1,12 @@
-import jwt from 'jsonwebtoken';
+import jwt, {type SignOptions} from 'jsonwebtoken';
+import { config } from '../config/env'
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+type ExpiresIn = NonNullable<SignOptions['expiresIn']>;
+
+const ACCESS_SECRET = config.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = config.JWT_REFRESH_SECRET;
+const ACCESS_TTL = config.JWT_ACCESS_SECRET_EXPIRES_IN as ExpiresIn;
+const REFRESH_TTL = config.JWT_REFRESH_SECRET_EXPIRES_IN as ExpiresIn;
 
 // These should never be the same value.
 // If they were, a refresh token could be used as an access token.
@@ -16,7 +21,7 @@ export function generateAccessToken(user: { id: string; tier: string }) {
   return jwt.sign(
     { sub: user.id, role: user.tier, type: 'access' },
     ACCESS_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: ACCESS_TTL }
   );
 }
 
@@ -24,7 +29,7 @@ export function generateRefreshToken(user: { id: string; tier: string }) {
   return jwt.sign(
     { sub: user.id, role: user.tier, type: 'refresh' },
     REFRESH_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: REFRESH_TTL }
   );
 }
 

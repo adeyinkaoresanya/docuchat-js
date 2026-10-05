@@ -1,6 +1,6 @@
 // // In src/services/auth.service.ts, add at the top:
-// import { appEvents } from '../lib/events';
-// import { AUTH_EVENTS } from '../events/auth.events';
+import { appEvents } from '../lib/events';
+import { AUTH_EVENTS } from '../events/auth.events';
 
 
 // export async function register(data: {
@@ -110,6 +110,28 @@ export async function register(data: {
       passwordHash,
     },
   });
+
+  const defaultRole = await prisma.role.findFirst({
+  where: { isDefault: true },
+});
+
+if (defaultRole) {
+  await prisma.userRole.create({
+    data: {
+      userId: user.id,
+      roleId: defaultRole.id,
+    },
+  });
+}
+
+  appEvents.emit(
+    AUTH_EVENTS.USER_REGISTERED,
+    {
+      id: user.id,
+      email: user.email,
+      tier: user.tier,
+    }
+  );
 
   // Don't return the hash
   return { id: user.id, email: user.email, tier: user.tier };
