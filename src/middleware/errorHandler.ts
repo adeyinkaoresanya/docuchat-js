@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../lib/errors';
+import { logger } from '../lib/logger';
+import { scrubSensitiveData, scrubSensitiveString } from '../lib/scrub';
 
 
 
@@ -13,22 +15,53 @@ export function errorHandler(
   next: NextFunction
 ) {
   if (err instanceof AppError) {
-    console.warn(
-      `[${err.code}] ${err.message}`,
-      err.details ? { details: err.details } : ''
+    const scrubbedMessage = scrubSensitiveString(err.message);
+    const scrubbedDetails = err.details
+      ? scrubSensitiveData(err.details)
+      : undefined;
+    const scrubbedStack = err.stack
+      ? scrubSensitiveString(err.stack)
+      : undefined;
+
+    logger.warn(
+      {
+        code: err.code,
+        statusCode: err.statusCode,
+        method: req.method,
+        path: req.path,
+        details: scrubbedDetails,
+        stack: scrubbedStack,
+      },
+      `[${err.code}] ${scrubbedMessage}`
     );
 
     return res.status(err.statusCode).json({
       success: false,
       error: {
         code: err.code,
-        message: err.message,
-        ...(err.details ? { details: err.details } : {}),
+        message: scrubbedMessage,
+        ...(scrubbedDetails ? { details: scrubbedDetails } : {}),
       },
     });
   }
 
-  console.error('Unhandled error:', err);
+  if (err instanceof Error) {
+    logger.error(
+      {
+        name: err.name,
+        method: req.method,
+        path: req.path,
+        message: scrubSensitiveString(err.message),
+        stack: err.stack ? scrubSensitiveString(err.stack) : undefined,
+      },
+      'Unhandled error'
+    );
+  } else {
+    logger.error(
+      { error: scrubSensitiveData(err), method: req.method, path: req.path },
+      'Unhandled non-Error thrown'
+    );
+  }
 
   return res.status(500).json({
     success: false,

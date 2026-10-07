@@ -4,6 +4,7 @@
 // import { documentParamsSchema } from '../validators/document.validator';
 // import { getDocument } from '../controllers/document.controller';
 // import {documentQueue} from '../queues/document.queue';
+// import { uploadLimiter } from '../middleware/rateLimiter';
 
 // const router = Router();
 
@@ -47,4 +48,11 @@
         // );
 
 
-// router.get('/documents/:id', conditionalGet(), getDocument);
+        
+
+// router.post('/',
+//   uploadLimiter,            // Upload-specific limit
+//   requirePermission('documents:create'),
+//   validate(createDocumentSchema),
+//   createDocument
+// );

@@ -10,3 +10,4 @@ dist/
 skills-lock.json
 test-email.ts
 /generated/prisma
+changes.md

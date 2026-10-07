@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { NotFoundError } from '../lib/errors';
 
 
 export async function listConversations(
@@ -61,16 +62,20 @@ export async function sendMessage(data: {
   content: string;
   documentId?: string;
 }) {
-
-   const doc = await tx.document.findUnique({where:{id:documentId, deletedAt:null})
-
-   if(!doc){throw new Error('Document not found')}
-
   return prisma.$transaction(async (tx) => {
+    if (data.documentId) {
+      const doc = await tx.document.findFirst({
+        where: { id: data.documentId, deletedAt: null },
+      });
+
+      if (!doc) {
+        throw new NotFoundError('Document not found');
+      }
+    }
 
     // 1. Verify the conversation belongs to this user
-    const conversation = await tx.conversation.findUnique({
-      where: { id: data.conversationId, userId: userId },
+    const conversation = await tx.conversation.findFirst({
+      where: { id: data.conversationId, userId: data.userId },
     });
 
     if (!conversation) {
@@ -81,7 +86,8 @@ export async function sendMessage(data: {
     const userMessage = await tx.message.create({
       data: {
         conversationId: data.conversationId,
-        documentId: data.documentId,
+        userId: data.userId,
+        documentId: data.documentId ?? null,
         role: 'user',
         content: data.content,
       },
@@ -98,7 +104,8 @@ export async function sendMessage(data: {
     const assistantMessage = await tx.message.create({
       data: {
         conversationId: data.conversationId,
-        documentId: data.documentId,
+        userId: data.userId,
+        documentId: data.documentId ?? null,
         role: 'assistant',
         content: 'AI response placeholder (Week 4)',
         promptTokens: 0,

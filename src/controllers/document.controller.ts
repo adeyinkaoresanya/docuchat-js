@@ -15,3 +15,29 @@
 //     data: document,
 //   });
 // }
+
+
+// In a controller:
+// const result = await documentService.createDocument({
+//   ...req.body,
+//   userId: req.user!.id,
+//   correlationId: (req as any).correlationId,
+// });
+
+// // In the service:
+// export async function createDocument(data: {
+//   title: string;
+//   content: string;
+//   userId: string;
+//   correlationId: string;
+// }) {
+//   logger.info('Creating document', {
+//     correlationId: data.correlationId,
+//     userId: data.userId,
+//     title: data.title,
+//   });
+//   // ... rest of the function
+// }
+
+
+

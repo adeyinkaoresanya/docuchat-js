@@ -1,5 +1,5 @@
 import { appEvents } from '../lib/events';
-import { prisma } from '../lib/prisma';
+import { usageLogRepository } from '../repositories/usageLog.repository';
 
 export const DOC_EVENTS = {
   CREATED: 'doc:created',
@@ -9,18 +9,16 @@ export const DOC_EVENTS = {
 
 appEvents.on(DOC_EVENTS.CREATED, async (data) => {
   try {
-    await prisma.usageLog.create({
-      data: {
-        userId: data.userId,
-        action: 'document_created',
-        tokens: 0,
-        costUsd: 0,
-        metadata: JSON.stringify({
-          documentId: data.documentId,
-          title: data.title,
-          fileSizeBytes: data.fileSizeBytes,
-        }),
-      },
+    await usageLogRepository.create({
+      userId: data.userId,
+      action: 'document_created',
+      tokens: 0,
+      costUsd: 0,
+      metadata: JSON.stringify({
+        documentId: data.documentId,
+        title: data.title,
+        fileSizeBytes: data.fileSizeBytes,
+      }),
     });
   } catch (error) {
     console.error('Failed to log document creation:', error);
@@ -29,18 +27,16 @@ appEvents.on(DOC_EVENTS.CREATED, async (data) => {
 
 appEvents.on(DOC_EVENTS.DELETED, async (data) => {
   try {
-    await prisma.usageLog.create({
-      data: {
-        userId: data.deletedBy,
-        action: 'document_deleted',
-        tokens: 0,
-        costUsd: 0,
-        metadata: JSON.stringify({
-          documentId: data.documentId,
-          title: data.title,
-          deletedAt: new Date().toISOString(),
-        }),
-      },
+    await usageLogRepository.create({
+      userId: data.deletedBy,
+      action: 'document_deleted',
+      tokens: 0,
+      costUsd: 0,
+      metadata: JSON.stringify({
+        documentId: data.documentId,
+        title: data.title,
+        deletedAt: new Date().toISOString(),
+      }),
     });
   } catch (error) {
     console.error('Failed to log document deletion:', error);

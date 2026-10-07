@@ -14,6 +14,7 @@ const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  FRONTEND_URL: z.string().default('http://localhost:3001'),
 
   // Authentication
   JWT_ACCESS_SECRET: z.string().min(32,

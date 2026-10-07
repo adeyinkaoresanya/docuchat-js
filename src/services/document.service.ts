@@ -140,6 +140,7 @@ export async function createDocument(data: {
   title: string;
   content: string;
   userId: string;
+  correlationId?: string;
 }) {
   // Create the document with pending status
   const doc = await prisma.document.create({
@@ -153,7 +154,8 @@ export async function createDocument(data: {
   });
 
   // Queue for background processing
-  const jobId = await queueDocumentForProcessing(doc.id, data.userId);
+  const correlationId = data.correlationId ?? doc.id;
+  const jobId = await queueDocumentForProcessing(doc.id, data.userId, correlationId);
 
   appEvents.emit('doc:created', {
     userId: data.userId,
