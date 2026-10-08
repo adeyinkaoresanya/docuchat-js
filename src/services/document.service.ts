@@ -1,14 +1,68 @@
-import { prisma } from '../lib/prisma';
 import { NotFoundError } from '../lib/errors';
 import { getUserPermissions } from './rbac.service';
 import { appEvents } from '../lib/events';
 import { DOC_EVENTS } from '../events/document.events';
-import { queueDocumentForProcessing } from '../queues/document.queue';
+import {
+  documentQueue,
+  queueDocumentForProcessing,
+} from '../queues/document.queue';
+import {
+  documentRepository,
+  type ListDocumentsOptions,
+} from '../repositories/document.repository';
+
+
+
+export async function createDocument(data: {
+//   title: string;
+//   content: string;
+//   userId: string;
+//   correlationId?: string;
+// }) {
+
+//   // Create the document in the database
+//   const doc = await documentRepository.create({
+//     userId: data.userId,
+//     title: data.title,
+//     filename: data.title.toLowerCase().replace(/\s+/g, '-'),
+//     content: data.content,
+//     status: 'pending',
+//   });
+
+
+ file: Express.Multer.File;
+  userId: string;
+  correlationId?: string;
+}) {
+  const { file, userId } = data;
+
+  const doc = await documentRepository.create({
+    userId,
+    title: file.originalname,
+    filename: file.filename,
+    filepath: file.path,
+    mimeType: file.mimetype,
+    fileSize: file.size,
+    status: 'pending',
+  });
+
+  // Queue for background processing
+  const correlationId = data.correlationId ?? doc.id;
+  const jobId = await queueDocumentForProcessing(doc.id, data.userId, correlationId);
+
+  appEvents.emit(DOC_EVENTS.CREATED, {
+    userId: data.userId,
+    documentId: doc.id,
+    title: doc.title,
+  });
+
+  // Return 202 Accepted (not 201 Created)
+  // The document exists but isn't ready yet
+  return { document: doc, jobId };
+}
 
 export async function getDocumentForUser(documentId: string, userId: string) {
-  const document = await prisma.document.findUnique({
-    where: { id: documentId },
-  });
+  const document = await documentRepository.findById(documentId);
 
   if (!document) {
     throw new NotFoundError('Document not found');
@@ -25,68 +79,11 @@ export async function getDocumentForUser(documentId: string, userId: string) {
   return document;
 }
 
-
-
-
-
-interface ListDocumentsOptions {
-  page: number;
-  limit: number;
-  status?: string;
-  search?: string;
-  sortBy?: 'createdAt' | 'title' | 'chunkCount';
-  sortOrder?: 'asc' | 'desc';
-}
-
 export async function listDocuments(
   userId: string,
   options: ListDocumentsOptions
 ) {
-  const {
-    page, limit,
-    status, search,
-    sortBy = 'createdAt',
-    sortOrder = 'desc',
-  } = options;
-
-  // Build the where clause dynamically
-  const where: any = {
-    userId,
-    deletedAt: null, // Soft delete filter (we'll add this today)
-  };
-
-  if (status) {
-    where.status = status;
-  }
-
-  if (search) {
-    where.title = { contains: search, mode: 'insensitive' };
-    where.description = { contains: search, mode: 'insensitive' };
-  }
-
-  const [documents, total] = await Promise.all([
-    prisma.document.findMany({
-      where,
-      orderBy: { [sortBy]: sortOrder },
-      skip: (page - 1) * limit,
-      take: limit,
-      select: {
-        id: true,
-        title: true,
-        filename: true,
-        status: true,
-        chunkCount: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    }),
-    prisma.document.count({ where }),
-  ]);
-
-  return {
-    data: documents,
-    meta: { page, limit, total },
-  };
+  return documentRepository.listForUser(userId, options);
 }
 
 
@@ -95,9 +92,7 @@ export async function deleteDocument(
   documentId: string,
   userId: string
 ) {
-  const doc = await prisma.document.findUnique({
-    where: { id: documentId },
-  });
+  const doc = await documentRepository.findById(documentId);
 
   if (!doc || doc.deletedAt) {
     throw new NotFoundError('Document not found');
@@ -108,63 +103,32 @@ export async function deleteDocument(
     throw new NotFoundError('Document not found');
   }
 
-  return prisma.document.update({
-    where: { id: documentId },
-    data: {
-      deletedAt: new Date(),
-      deletedBy: userId,
-    },
+  const deletedDoc = await documentRepository.softDelete(documentId, userId);
+  appEvents.emit(DOC_EVENTS.DELETED, {
+    deletedBy: userId,
+    documentId: deletedDoc.id,
+    title: deletedDoc.title,
   });
+
+  return deletedDoc;
 }
 
+export async function getDocumentProcessingStatus(
+  documentId: string,
+  userId: string
+) {
+  const doc = await documentRepository.findStatusById(documentId);
 
+  if (!doc || doc.deletedAt || doc.userId !== userId) {
+    throw new NotFoundError('Document not found');
+  }
 
-// appEvents.emit(DOC_EVENTS.CREATED, {
-//   userId: user.id,
-//   documentId: doc.id,
-//   title: doc.title,
-//   fileSizeBytes: doc.fileSizeBytes,
-// });
+  const jobs = await documentQueue.getJobs(['active', 'waiting']);
+  const activeJob = jobs.find((job) => job.data.documentId === documentId);
 
-
-
-// // In document.service.ts deleteDocument:
-// appEvents.emit(DOC_EVENTS.DELETED, {
-//   deletedBy: userId,
-//   documentId: doc.id,
-//   title: doc.title,
-// });
-
-
-export async function createDocument(data: {
-  title: string;
-  content: string;
-  userId: string;
-  correlationId?: string;
-}) {
-  // Create the document with pending status
-  const doc = await prisma.document.create({
-    data: {
-      userId: data.userId,
-      title: data.title,
-      filename: data.title.toLowerCase().replace(/\s+/g, '-'),
-      content: data.content,
-      status: 'pending',
-    },
-  });
-
-  // Queue for background processing
-  const correlationId = data.correlationId ?? doc.id;
-  const jobId = await queueDocumentForProcessing(doc.id, data.userId, correlationId);
-
-  appEvents.emit('doc:created', {
-    userId: data.userId,
-    documentId: doc.id,
-    title: doc.title,
-  });
-
-  // Return 202 Accepted (not 201 Created)
-  // The document exists but isn't ready yet
-  return { document: doc, jobId };
+  return {
+    status: doc.status,
+    error: doc.error,
+    progress: activeJob ? await activeJob.progress : null,
+  };
 }
-

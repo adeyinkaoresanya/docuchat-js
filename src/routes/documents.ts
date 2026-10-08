@@ -1,58 +1,50 @@
-// import { Router } from 'express';
-// import { authenticate } from '../middleware/auth';
-// import { validate } from '../middleware/validate';
-// import { documentParamsSchema } from '../validators/document.validator';
-// import { getDocument } from '../controllers/document.controller';
-// import {documentQueue} from '../queues/document.queue';
-// import { uploadLimiter } from '../middleware/rateLimiter';
+import { Router } from 'express';
+import { authenticate } from '../middleware/authenticate';
+import { validate } from '../middleware/validate';
+import {
+  documentParamsSchema,
+  createDocumentSchema,
+  listDocumentsSchema,
+} from '../validators/document.validator';
+import { requirePermission } from '../middleware';
+import { uploadFile} from '../middleware/uploadFile';
+//import { uploadLimiter } from '../middleware/rateLimiter';
+import * as documentController from '../controllers/document.controller';
 
-// const router = Router();
+const router = Router();
 
-// router.use(authenticate);
+router.use(authenticate);
 
-// router.get('/:id', validate(documentParamsSchema), getDocument);
+//IMPLEMENT UPLOAD LIMITER!!!
 
-// export default router;
+router.post('/',
+  // uploadLimiter,            // Upload-specific limit
+  requirePermission('documents:create'),
+  uploadFile.single("file"),
+  //validate(createDocumentSchema),
+  documentController.createDocument
+);
 
-// router.get('/:id/processing-status',
-//   authenticate,
-//   requirePermission('documents:read'),
-//   async (req, res) => {
-//     const doc = await prisma.document.findUnique({
-//       where: { id: req.params.id },
-//       select: { id: true, status: true, error: true, userId: true },
-//     });
+router.get('/:id', validate(documentParamsSchema), documentController.getDocument);
 
-//     if (!doc || doc.userId !== req.user!.id) {
-//       return res.status(404).json({
-//         success: false,
-//         error: { code: 'NOT_FOUND', message: 'Document not found' },
-//       });
-//     }
+router.get(
+  '/',
+  requirePermission('documents:read'),
+  validate(listDocumentsSchema),
+  documentController.listDocuments
+);
 
-//     // Try to find the active job for this document
-//     const jobs = await documentQueue.getJobs(['active', 'waiting']);
-//     const activeJob = jobs.find(
-//       j => j.data.documentId === req.params.id
-//     );
 
-//     res.json({
-//       success: true,
-//       data: {
-//         status: doc.status,
-//         error: doc.error,
-//         progress: activeJob ? await activeJob.progress : null,
-//       },
-        // });
-        // }
-        // );
+router.delete('/:id', validate(documentParamsSchema), requirePermission('documents:delete'), documentController.deleteDocument);
+
+
+router.get('/:id/processing-status',
+  validate(documentParamsSchema),
+  requirePermission('documents:read'),
+  documentController.getDocumentProcessingStatus
+);
 
 
         
+export default router;
 
-// router.post('/',
-//   uploadLimiter,            // Upload-specific limit
-//   requirePermission('documents:create'),
-//   validate(createDocumentSchema),
-//   createDocument
-// );
