@@ -5,10 +5,14 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+
 }
 
 datasource db {
   provider = "postgresql"
+  extensions = [vector]
+
 
 }
 
@@ -104,11 +108,14 @@ model Document {
   title       String
   description String?
   filename    String
-  content     String
+  filepath    String
+  mimeType    String
+  fileSizeBytes Int?
+  content     String?
   status      String   @default("pending")
   chunkCount  Int      @default(0)
   error       String?
-  fileSizeBytes Int?
+  
   deletedAt   DateTime?  // null = active, timestamp = soft-deleted
   deletedBy   String?    // Who deleted it (for audit)
   createdAt   DateTime @default(now())
@@ -136,8 +143,8 @@ model Chunk {
   createdAt  DateTime @default(now())
 
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
   @@index([documentId])
+
   @@unique([documentId, index])
 }
 
