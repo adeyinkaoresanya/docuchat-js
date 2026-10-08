@@ -1,6 +1,11 @@
 // tests/integration/auth.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
+
+vi.mock('../../src/services/rbac.service', () => ({
+  getUserPermissions: vi.fn(async () => new Set(['documents:read'])),
+}));
+
 import {app } from '../../src/app';
 import { resetDatabase, createTestUser } from '../helpers/setup';
 
