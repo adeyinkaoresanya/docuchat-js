@@ -20,6 +20,7 @@ import { metricsRegistry } from './lib/metrics';
 
 
 import authRoutes from './routes/auth';
+import documentRoutes from './routes/documents';
 import healthRoutes from './routes/health';
 
 
@@ -136,7 +137,7 @@ app.get('/metrics', async (req, res) => {
 //app.use('/api/v1', apiLimiter);
 app.use('/api/v1/auth', authRoutes); //add authLimiter here
 //app.use('/api/v1/admin', adminRoutes);
-// app.use('/api/v1/documents', documentRoutes);
+app.use('/api/v1/documents', documentRoutes);
 // app.use('/api/v1/conversations', conversationRoutes);
 // app.use('/api/v1/chat', chatRoutes);
 

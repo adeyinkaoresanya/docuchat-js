@@ -1,12 +1,13 @@
+// 
+
+
+
+
 import type { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { AppError } from '../lib/errors';
 import { logger } from '../lib/logger';
 import { scrubSensitiveData, scrubSensitiveString } from '../lib/scrub';
-
-
-
-// if this error is an instance of the custom errors implemented which are mostly operational errors, log it
-//otherwise, this is most likely a programming error, log it and return a generic message to the client
 
 export function errorHandler(
   err: Error,
@@ -45,6 +46,32 @@ export function errorHandler(
     });
   }
 
+  // Multer errors are client/request errors, not server errors
+  if (err instanceof multer.MulterError) {
+    logger.warn(
+      {
+        code: 'MULTER_ERROR',
+        statusCode: 400,
+        method: req.method,
+        path: req.path,
+        message: scrubSensitiveString(err.message),
+        field: err.field,
+      },
+      'File upload error'
+    );
+
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_FILE_UPLOAD',
+        message: 'There was a problem uploading the file. Please try again.',
+        // code: 'MULTER_ERROR',
+        // message: scrubSensitiveString(err.message),
+        // ...(err.field ? { field: err.field } : {}),
+      },
+    });
+  }
+
   if (err instanceof Error) {
     logger.error(
       {
@@ -58,7 +85,11 @@ export function errorHandler(
     );
   } else {
     logger.error(
-      { error: scrubSensitiveData(err), method: req.method, path: req.path },
+      {
+        error: scrubSensitiveData(err),
+        method: req.method,
+        path: req.path,
+      },
       'Unhandled non-Error thrown'
     );
   }
@@ -71,4 +102,3 @@ export function errorHandler(
     },
   });
 }
-

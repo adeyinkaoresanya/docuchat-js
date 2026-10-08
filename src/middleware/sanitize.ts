@@ -28,9 +28,20 @@ function sanitizeValue(value: any): any {
 export function sanitizeInput(
   req: Request, res: Response, next: NextFunction
 ) {
-  if (req.body) req.body = sanitizeValue(req.body);
-  if (req.query) req.query = sanitizeValue(req.query);
-  if (req.params) req.params = sanitizeValue(req.params);
+  if (req.body) {
+    req.body = sanitizeValue(req.body);
+  }
+
+  if (req.query) {
+    const sanitizedQuery = sanitizeValue(req.query);
+    Object.assign(req.query as Record<string, unknown>, sanitizedQuery);
+  }
+
+  if (req.params) {
+    const sanitizedParams = sanitizeValue(req.params);
+    Object.assign(req.params as Record<string, unknown>, sanitizedParams);
+  }
+
   next();
 }
 
